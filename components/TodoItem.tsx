@@ -13,9 +13,15 @@ const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const handleDelete = async () => {
+    if (!todo.id) return; // Defensive check for null/undefined id
     setIsDeleting(true);
     await deleteTodo(todo.id);
     // No need to set isDeleting to false as the component will unmount
+  };
+
+  const handleToggle = () => {
+    if (!todo.id) return; // Defensive check for null/undefined id
+    toggleTodo(todo.id);
   };
 
   const formattedDate = new Intl.DateTimeFormat('ko-KR', {
@@ -31,11 +37,12 @@ const TodoItem: React.FC<TodoItemProps> = ({ todo }) => {
       <input
         type="checkbox"
         checked={todo.completed}
-        onChange={() => toggleTodo(todo.id)}
+        onChange={handleToggle}
         className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+        aria-labelledby={`todo-title-${todo.id}`}
       />
       <div className="ml-3 flex-grow">
-        <p className={`text-slate-800 ${todo.completed ? 'line-through text-slate-400' : ''}`}>
+        <p id={`todo-title-${todo.id}`} className={`text-slate-800 ${todo.completed ? 'line-through text-slate-400' : ''}`}>
           {todo.title}
         </p>
         <p className={`text-sm ${todo.completed ? 'text-slate-400' : 'text-slate-500'}`}>

@@ -13,7 +13,9 @@ const mapApiDataToTodo = (data: any): Todo => {
 
 
 export const fetchTodos = async (): Promise<Todo[]> => {
-  const response = await fetch('/api/todos');
+  const response = await fetch('/api/todos', {
+    credentials: 'include',
+  });
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
@@ -28,6 +30,7 @@ export const createTodo = async (title: string, dateTime: Date): Promise<Todo> =
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify({ title, dateTime: dateTime.toISOString() }),
   });
   if (!response.ok) {
@@ -45,6 +48,7 @@ export const removeTodo = async (id: string): Promise<{id: string}> => {
     }
     const response = await fetch(`/api/todos/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
     });
     if (!response.ok) {
         throw new Error('Failed to delete todo');

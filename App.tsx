@@ -3,13 +3,13 @@ import { TodoProvider } from './context/TodoContext';
 import Header from './components/Header';
 import TodoForm from './components/TodoForm';
 import TodoList from './components/TodoList';
+import Spinner from './components/Spinner';
 
 const Auth: React.FC = () => {
   return (
     <div className="text-center p-4">
       <h2 className="text-xl font-bold text-slate-700 mb-2">환영합니다!</h2>
       <p className="text-slate-500 mb-6">할 일 목록 동기화를 시작하려면 Google 캘린더를 연결하세요.</p>
-      {/* 이 버튼은 이제 실제 백엔드의 인증 경로로 연결되는 링크입니다. */}
       <a
         href="/auth/google"
         className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out flex items-center justify-center"
@@ -25,36 +25,65 @@ const Auth: React.FC = () => {
 
 
 const App: React.FC = () => {
-  // 실제 인증은 Google 리디렉션을 통해 서버에서 처리됩니다.
-  // 이 상태는 단순히 사용자가 인증 흐름을 거쳤는지 여부를 UI에 표시하기 위한 것입니다.
-  // 실제 앱에서는 쿠키나 서버 확인을 통해 더 견고하게 처리할 수 있습니다.
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    // 페이지 로드 시, 사용자가 이미 인증되었는지 확인하는 간단한 방법.
-    // 예를 들어, 서버에 /api/auth/status 같은 엔드포인트를 만들어 확인할 수 있습니다.
-    // 이 예제에서는 간단하게, URL에 'code='가 있으면 인증 흐름을 거친 것으로 간주합니다.
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('code')) {
-      setIsAuthorized(true);
-    }
+    // 페이지 로드 시, 서버에 현재 인증 상태를 물어봅니다.
+    // 이렇게 하면 페이지를 새로고침해도 로그인 상태가 유지됩니다.
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/status', {
+            credentials: 'include', // Send cookies with the request
+        });
+        if (!response.ok) {
+            // If the response is not ok (e.g., 401), we are not authorized.
+            setIsAuthorized(false);
+            return;
+        }
+        const data = await response.json();
+        setIsAuthorized(data.isAuthorized);
+      } catch (error) {
+        // A network error or JSON parsing error also means we're not authorized.
+        console.error('인증 상태 확인 중 오류:', error);
+        setIsAuthorized(false);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
   }, []);
+
+  const renderContent = () => {
+    if (isCheckingAuth) {
+      return (
+        <div className="flex justify-center items-center h-48">
+          <Spinner />
+        </div>
+      );
+    }
+
+    if (isAuthorized) {
+      return (
+        <TodoProvider>
+          <Header />
+          <div className="space-y-4">
+            <TodoForm />
+            <TodoList />
+          </div>
+        </TodoProvider>
+      );
+    }
+    
+    return <Auth />;
+  };
 
   return (
     <div className="flex justify-center items-start min-h-screen pt-4 sm:pt-8">
       <main className="w-full max-w-md mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
         <div className="p-4 sm:p-6">
-          {isAuthorized ? (
-            <TodoProvider>
-              <Header />
-              <div className="space-y-4">
-                <TodoForm />
-                <TodoList />
-              </div>
-            </TodoProvider>
-          ) : (
-            <Auth />
-          )}
+          {renderContent()}
         </div>
       </main>
     </div>
