@@ -1,4 +1,5 @@
-import express, { Express, Request, Response, NextFunction } from 'express';
+// FIX: Alias Request and Response from express to avoid name collision with global DOM types.
+import express, { Express, Request as ExpressRequest, Response as ExpressResponse, NextFunction } from 'express';
 import path from 'path';
 import { google } from 'googleapis';
 import dotenv from 'dotenv';
@@ -48,7 +49,8 @@ const oauth2Client = new google.auth.OAuth2(
 const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
 // 로그인 상태를 확인하고, 인증된 경우 요청에 대한 자격 증명을 설정하는 미들웨어
-const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types to ensure correct type checking.
+const isAuthenticated = (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
   if (req.session.tokens) {
     oauth2Client.setCredentials(req.session.tokens);
     return next();
@@ -60,7 +62,8 @@ const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
 // --- 인증 관련 라우트 ---
 
 // Google 로그인 창으로 사용자를 리디렉션하는 경로
-app.get('/auth/google', (req: Request, res: Response) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types.
+app.get('/auth/google', (req: ExpressRequest, res: ExpressResponse) => {
   const scopes = [
     'https://www.googleapis.com/auth/calendar.events',
   ];
@@ -73,7 +76,8 @@ app.get('/auth/google', (req: Request, res: Response) => {
 });
 
 // Google 로그인 후 리디렉션되는 콜백 경로
-app.get('/auth/google/callback', async (req: Request, res: Response) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types.
+app.get('/auth/google/callback', async (req: ExpressRequest, res: ExpressResponse) => {
   const { code } = req.query;
   if (!code) {
     return res.status(400).send('인증 코드가 없습니다.');
@@ -90,7 +94,8 @@ app.get('/auth/google/callback', async (req: Request, res: Response) => {
 });
 
 // 프론트엔드에서 현재 로그인 상태를 확인할 수 있는 API
-app.get('/api/auth/status', (req: Request, res: Response) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types.
+app.get('/api/auth/status', (req: ExpressRequest, res: ExpressResponse) => {
     if (req.session.tokens) {
         res.json({ isAuthorized: true });
     } else {
@@ -102,7 +107,8 @@ app.get('/api/auth/status', (req: Request, res: Response) => {
 // --- API 엔드포인트 (이제 인증 미들웨어로 보호됩니다) ---
 
 // 할 일 목록 가져오기
-app.get('/api/todos', isAuthenticated, async (req: Request, res: Response) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types.
+app.get('/api/todos', isAuthenticated, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const response = await calendar.events.list({
             calendarId: 'primary',
@@ -132,7 +138,8 @@ app.get('/api/todos', isAuthenticated, async (req: Request, res: Response) => {
 });
 
 // 할 일 추가하기
-app.post('/api/todos', isAuthenticated, async (req: Request, res: Response) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types.
+app.post('/api/todos', isAuthenticated, async (req: ExpressRequest, res: ExpressResponse) => {
   const { title, dateTime } = req.body;
   if (!title || !dateTime) {
     return res.status(400).json({ error: '제목과 날짜/시간이 필요합니다.' });
@@ -172,7 +179,8 @@ app.post('/api/todos', isAuthenticated, async (req: Request, res: Response) => {
 });
 
 // 할 일 삭제하기
-app.delete('/api/todos/:id', isAuthenticated, async (req: Request, res: Response) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types.
+app.delete('/api/todos/:id', isAuthenticated, async (req: ExpressRequest, res: ExpressResponse) => {
     const { id } = req.params;
     try {
         await calendar.events.delete({ calendarId: 'primary', eventId: id });
@@ -188,7 +196,8 @@ app.delete('/api/todos/:id', isAuthenticated, async (req: Request, res: Response
 const clientPath = path.resolve(__dirname, '..', 'dist');
 app.use(express.static(clientPath));
 
-app.get('*', (req: Request, res: Response) => {
+// FIX: Use aliased ExpressRequest and ExpressResponse types.
+app.get('*', (req: ExpressRequest, res: ExpressResponse) => {
   res.sendFile(path.resolve(clientPath, 'index.html'));
 });
 
