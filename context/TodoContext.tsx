@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import type { Todo } from '../types';
 import * as api from '../services/googleCalendarService';
@@ -24,7 +23,9 @@ export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       setError(null);
       const fetchedTodos = await api.fetchTodos();
-      setTodos(fetchedTodos);
+      // API에서 받은 할 일들을 날짜/시간 순으로 정렬합니다.
+      const sortedTodos = fetchedTodos.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime());
+      setTodos(sortedTodos);
     } catch (err) {
       setError('할 일 목록을 불러오지 못했습니다.');
       console.error(err);
@@ -41,7 +42,9 @@ export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const dateTime = new Date(`${date}T${time}`);
       const newTodo = await api.createTodo(title, dateTime);
-      setTodos(prevTodos => [...prevTodos, newTodo].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime()));
+      setTodos(prevTodos => 
+        [...prevTodos, newTodo].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+      );
     } catch (err) {
       setError('할 일을 추가하지 못했습니다.');
       console.error(err);
@@ -60,8 +63,17 @@ export const TodoProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const toggleTodo = async (id: string) => {
     try {
-      const updatedTodo = await api.toggleTodoCompletion(id);
-      setTodos(prevTodos => prevTodos.map(todo => todo.id === id ? updatedTodo : todo));
+      // API는 '완료' 상태를 지원하지 않으므로, 이 기능은 프론트엔드에서만 상태를 변경합니다.
+      // 실제 앱에서는 캘린더 이벤트의 색상을 변경하는 등의 방법으로 구현할 수 있습니다.
+      const todoToToggle = todos.find(todo => todo.id === id);
+      if (!todoToToggle) {
+        console.error(`Todo with id ${id} not found for toggling.`);
+        return;
+      }
+      
+      const updatedTodo = { ...todoToToggle, completed: !todoToToggle.completed };
+      
+      setTodos(prevTodos => prevTodos.map(todo => (todo.id === id ? updatedTodo : todo)));
     } catch (err) {
       setError('할 일을 업데이트하지 못했습니다.');
       console.error(err);
