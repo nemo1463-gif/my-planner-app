@@ -1,8 +1,7 @@
 export interface Todo {
-  id: string | null | undefined;
-  eventId: string | null | undefined; // To map with Google Calendar event
-  title: string | null | undefined;
+  id: string;
+  eventId: string; // To map with Google Calendar event
+  title: string;
   completed: boolean;
   dateTime: Date;
 }
-

@@ -1,4 +1,8 @@
-// FIX: Alias Request and Response from express to avoid name collision with global DOM types.
+
+// FIX: Combined express imports into a single statement and removed 'type' keyword.
+// The previous type-only import for Express types was preventing TypeScript from
+// correctly resolving module augmentations from libraries like 'express-session',
+// leading to numerous type errors. This change ensures proper type resolution.
 import express, { Express, Request as ExpressRequest, Response as ExpressResponse, NextFunction } from 'express';
 import path from 'path';
 import { google } from 'googleapis';
@@ -49,7 +53,6 @@ const oauth2Client = new google.auth.OAuth2(
 const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
 // 로그인 상태를 확인하고, 인증된 경우 요청에 대한 자격 증명을 설정하는 미들웨어
-// FIX: Use aliased ExpressRequest and ExpressResponse types to ensure correct type checking.
 const isAuthenticated = (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
   if (req.session.tokens) {
     oauth2Client.setCredentials(req.session.tokens);
@@ -62,7 +65,6 @@ const isAuthenticated = (req: ExpressRequest, res: ExpressResponse, next: NextFu
 // --- 인증 관련 라우트 ---
 
 // Google 로그인 창으로 사용자를 리디렉션하는 경로
-// FIX: Use aliased ExpressRequest and ExpressResponse types.
 app.get('/auth/google', (req: ExpressRequest, res: ExpressResponse) => {
   const scopes = [
     'https://www.googleapis.com/auth/calendar.events',
@@ -76,7 +78,6 @@ app.get('/auth/google', (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 // Google 로그인 후 리디렉션되는 콜백 경로
-// FIX: Use aliased ExpressRequest and ExpressResponse types.
 app.get('/auth/google/callback', async (req: ExpressRequest, res: ExpressResponse) => {
   const { code } = req.query;
   if (!code) {
@@ -94,7 +95,6 @@ app.get('/auth/google/callback', async (req: ExpressRequest, res: ExpressRespons
 });
 
 // 프론트엔드에서 현재 로그인 상태를 확인할 수 있는 API
-// FIX: Use aliased ExpressRequest and ExpressResponse types.
 app.get('/api/auth/status', (req: ExpressRequest, res: ExpressResponse) => {
     if (req.session.tokens) {
         res.json({ isAuthorized: true });
@@ -107,7 +107,6 @@ app.get('/api/auth/status', (req: ExpressRequest, res: ExpressResponse) => {
 // --- API 엔드포인트 (이제 인증 미들웨어로 보호됩니다) ---
 
 // 할 일 목록 가져오기
-// FIX: Use aliased ExpressRequest and ExpressResponse types.
 app.get('/api/todos', isAuthenticated, async (req: ExpressRequest, res: ExpressResponse) => {
     try {
         const response = await calendar.events.list({
@@ -124,11 +123,11 @@ app.get('/api/todos', isAuthenticated, async (req: ExpressRequest, res: ExpressR
         const todos = events
           .filter(event => event.id && event.summary && (event.start?.dateTime || event.start?.date))
           .map(event => ({
-            id: event.id,
-            eventId: event.id,
-            title: event.summary,
+            id: event.id!,
+            eventId: event.id!,
+            title: event.summary!,
             completed: false,
-            dateTime: event.start?.dateTime || event.start?.date,
+            dateTime: event.start?.dateTime || event.start?.date!,
         }));
         res.json(todos);
     } catch (error) {
@@ -138,7 +137,6 @@ app.get('/api/todos', isAuthenticated, async (req: ExpressRequest, res: ExpressR
 });
 
 // 할 일 추가하기
-// FIX: Use aliased ExpressRequest and ExpressResponse types.
 app.post('/api/todos', isAuthenticated, async (req: ExpressRequest, res: ExpressResponse) => {
   const { title, dateTime } = req.body;
   if (!title || !dateTime) {
@@ -165,12 +163,19 @@ app.post('/api/todos', isAuthenticated, async (req: ExpressRequest, res: Express
 
     const response = await calendar.events.insert({ calendarId: 'primary', requestBody: event });
     const createdEvent = response.data;
+
+    // 응답을 보내기 전에 데이터 유효성 검사
+    if (!createdEvent.id || !createdEvent.summary || !createdEvent.start?.dateTime) {
+        console.error('Google Calendar API에서 생성된 이벤트에 필수 필드가 누락되었습니다.');
+        return res.status(500).json({ error: '이벤트 생성 후 데이터 처리 중 오류가 발생했습니다.' });
+    }
+
     res.status(201).json({
         id: createdEvent.id,
         eventId: createdEvent.id,
         title: createdEvent.summary,
         completed: false,
-        dateTime: createdEvent.start?.dateTime
+        dateTime: createdEvent.start.dateTime
     });
   } catch (error) {
     console.error('Google Calendar 이벤트 생성 오류:', error);
@@ -179,7 +184,6 @@ app.post('/api/todos', isAuthenticated, async (req: ExpressRequest, res: Express
 });
 
 // 할 일 삭제하기
-// FIX: Use aliased ExpressRequest and ExpressResponse types.
 app.delete('/api/todos/:id', isAuthenticated, async (req: ExpressRequest, res: ExpressResponse) => {
     const { id } = req.params;
     try {
@@ -193,10 +197,11 @@ app.delete('/api/todos/:id', isAuthenticated, async (req: ExpressRequest, res: E
 
 
 // --- 프론트엔드 제공 ---
+// API 라우트 뒤, 그리고 와일드카드 라우트 앞에 위치해야 합니다.
 const clientPath = path.resolve(__dirname, '..', 'dist');
 app.use(express.static(clientPath));
 
-// FIX: Use aliased ExpressRequest and ExpressResponse types.
+// 다른 모든 GET 요청은 프론트엔드 앱으로 전달
 app.get('*', (req: ExpressRequest, res: ExpressResponse) => {
   res.sendFile(path.resolve(clientPath, 'index.html'));
 });
