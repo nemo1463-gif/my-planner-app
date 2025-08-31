@@ -1,11 +1,11 @@
 
 
-// FIX: Combined express imports into a single statement and removed 'type' keyword.
-// The previous type-only import for Express types was preventing TypeScript from
-// correctly resolving module augmentations from libraries like 'express-session',
-// leading to numerous type errors. This change ensures proper type resolution.
-// FIX: Removed aliases for Request and Response types from the import statement and updated all route handlers to use the base `Request` and `Response` types directly. This allows TypeScript's type augmentation to work correctly, fixing errors where properties like `session`, `status`, `json`, etc., were not found.
-import express, { Express, Request, Response, NextFunction } from 'express';
+
+// FIX: Import Request, Response, and NextFunction types directly from express.
+// This ensures that type augmentations from middleware (e.g., express-session)
+// are applied correctly, resolving errors about missing properties like `session`
+// on Request objects and fixing overload resolution for app.use().
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { google } from 'googleapis';
 import dotenv from 'dotenv';
@@ -27,7 +27,7 @@ const __dirname = path.dirname(__filename);
 // .env 파일에서 환경 변수를 로드합니다.
 dotenv.config();
 
-const app: Express = express();
+const app: express.Express = express();
 const port = process.env.PORT || 8080;
 
 // JSON 요청 본문을 파싱하기 위한 미들웨어
