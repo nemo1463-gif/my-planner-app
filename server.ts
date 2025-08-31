@@ -1,10 +1,6 @@
-
-
-
-// FIX: Import Request, Response, and NextFunction types directly from express.
-// This ensures that type augmentations from middleware (e.g., express-session)
-// are applied correctly, resolving errors about missing properties like `session`
-// on Request objects and fixing overload resolution for app.use().
+// FIX: Import Request, Response, and NextFunction types from express to ensure correct type resolution.
+// This resolves errors with missing properties on request/response objects (e.g., req.session)
+// and overload resolution failures for middleware like app.use().
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { google } from 'googleapis';
