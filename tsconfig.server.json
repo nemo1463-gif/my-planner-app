@@ -5,8 +5,7 @@
     "moduleResolution": "NodeNext",
     "outDir": "dist-server",
     "noEmit": false,
-    "isolatedModules": false,
-    "allowSyntheticDefaultImports": true
+    "isolatedModules": false
   },
   "include": ["server.ts"]
 }
